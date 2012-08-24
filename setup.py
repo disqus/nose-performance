@@ -24,6 +24,7 @@ tests_require = [
 install_requires = [
     'nose>=0.9',
     'simplejson',
+    'unittest2',
 ]
 
 setup(
@@ -38,8 +39,8 @@ setup(
     packages=find_packages('src'),
     zip_safe=False,
     install_requires=install_requires,
-    tests_require=tests_require,
-    test_suite='runtests.runtests',
+    # tests_require=tests_require,
+    # test_suite='runtests.runtests',
     license='Apache License 2.0',
     include_package_data=True,
     entry_points={

@@ -75,20 +75,31 @@ class PerformancePlugin(Plugin):
         # Patch everything needed to get data.
 
         self._sql_data = []
-        self.add_context(PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', patch_cursor(self._sql_data)))
-
         self._cache_data = []
-        self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.get', PerformanceCacheWrapper(self._cache_data, 'get')))
-        self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.set', PerformanceCacheWrapper(self._cache_data, 'set')))
-        self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.add', PerformanceCacheWrapper(self._cache_data, 'add')))
-        self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.delete', PerformanceCacheWrapper(self._cache_data, 'delete')))
-        self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.get_many', PerformanceCacheWrapper(self._cache_data, 'get_many')))
-
         self._redis_data = []
-        self.add_context(PatchContext('redis.client.StrictRedis.execute_command', PerformanceRedisWrapper(self._redis_data)))
-
         self._pipeline_redis_data = []
-        self.add_context(PatchContext('redis.client.BasePipeline.execute_command', PerformanceRedisWrapper(self._pipeline_redis_data)))
+
+        try:
+            __import__('django')
+        except ImportError:
+            pass
+        else:
+            self.add_context(PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', patch_cursor(self._sql_data)))
+
+            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.get', PerformanceCacheWrapper(self._cache_data, 'get')))
+            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.set', PerformanceCacheWrapper(self._cache_data, 'set')))
+            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.add', PerformanceCacheWrapper(self._cache_data, 'add')))
+            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.delete', PerformanceCacheWrapper(self._cache_data, 'delete')))
+            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.get_many', PerformanceCacheWrapper(self._cache_data, 'get_many')))
+
+        try:
+            __import__('redis')
+        except ImportError:
+            pass
+        else:
+            self.add_context(PatchContext('redis.client.StrictRedis.execute_command', PerformanceRedisWrapper(self._redis_data)))
+
+            self.add_context(PatchContext('redis.client.BasePipeline.execute_command', PerformanceRedisWrapper(self._pipeline_redis_data)))
 
     def startTest(self, test):
         self.start = time.time()
@@ -108,6 +119,9 @@ class PerformancePlugin(Plugin):
         # Save a dict of data for this test.
         self.clear_context()
 
+        if not hasattr(self, 'end'):
+            return
+
         data = {
             'id': test.test.id(),
             'doc': test.test._testMethodDoc,
@@ -126,6 +140,8 @@ class PerformancePlugin(Plugin):
 
     def report(self, stream):
         base_dir = os.getcwd() + '/test_results/'
+        if not os.path.exists(base_dir):
+            os.makedirs(base_dir)
 
         # Dump the raw data to json
         with open(base_dir + self.json_file, "w+") as f:
