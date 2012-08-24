@@ -19,6 +19,7 @@ except ImportError:
 
 tests_require = [
     'psycopg2',
+    'redis',
 ]
 
 install_requires = [

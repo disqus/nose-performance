@@ -122,19 +122,20 @@ class PerformancePlugin(Plugin):
         if not hasattr(self, 'end'):
             return
 
+        interfaces = {}
         data = {
             'id': test.test.id(),
             'doc': test.test._testMethodDoc,
             'duration': self.end - self.start,
+            'interfaces': interfaces,
         }
 
-        data['sql'] = self._sql_data
-        data['cache'] = self._cache_data
-        data['redis'] = self._redis_data
-        data['pipelined_redis'] = self._pipeline_redis_data
-        data['duration'] = self.end - self.start
-        meth = getattr(test.test, test.test._testMethodName)
-        data['api_data'] = getattr(meth, 'api_data', {})
+        interfaces.update({
+            'sql': self._sql_data,
+            'cache': self._cache_data,
+            'redis': self._redis_data,
+            'pipelined_redis': self._pipeline_redis_data,
+        })
 
         self.tests.append(data)
 
