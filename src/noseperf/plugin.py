@@ -98,7 +98,6 @@ class PerformancePlugin(Plugin):
             pass
         else:
             self.add_context(PatchContext('redis.client.StrictRedis.execute_command', PerformanceRedisWrapper(self._redis_data)))
-
             self.add_context(PatchContext('redis.client.BasePipeline.execute_command', PerformanceRedisWrapper(self._pipeline_redis_data)))
 
     def startTest(self, test):
@@ -123,6 +122,7 @@ class PerformancePlugin(Plugin):
             return
 
         interfaces = {}
+
         data = {
             'id': test.test.id(),
             'doc': test.test._testMethodDoc,
