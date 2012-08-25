@@ -18,7 +18,8 @@ from nose.plugins.base import Plugin
 
 from noseperf.testcases import PerformanceTest
 from noseperf.util import PatchContext
-from noseperf.wrappers import patch_cursor, PerformanceCacheWrapper, PerformanceRedisWrapper
+from noseperf.wrappers import patch_cursor, PerformanceCacheWrapper, PerformanceRedisWrapper, \
+  RedisPipelineHook
 
 
 class PerformancePlugin(Plugin):
@@ -77,10 +78,11 @@ class PerformancePlugin(Plugin):
         self._sql_data = []
         self._cache_data = []
         self._redis_data = []
-        self._pipeline_redis_data = []
 
         try:
-            __import__('django')
+            from django.conf import settings
+            if not settings.configured:
+                raise ImportError
         except ImportError:
             pass
         else:
@@ -98,7 +100,7 @@ class PerformancePlugin(Plugin):
             pass
         else:
             self.add_context(PatchContext('redis.client.StrictRedis.execute_command', PerformanceRedisWrapper(self._redis_data)))
-            self.add_context(PatchContext('redis.client.BasePipeline.execute_command', PerformanceRedisWrapper(self._pipeline_redis_data)))
+            self.add_context(PatchContext('redis.client.BasePipeline.execute', RedisPipelineHook(self._redis_data)))
 
     def startTest(self, test):
         self.start = time.time()
@@ -134,7 +136,6 @@ class PerformancePlugin(Plugin):
             'sql': self._sql_data,
             'cache': self._cache_data,
             'redis': self._redis_data,
-            'pipelined_redis': self._pipeline_redis_data,
         })
 
         self.tests.append(data)

@@ -13,6 +13,42 @@ import time
 import logging
 
 
+class RedisPipelineHook(object):
+    """Wraps Redis methods and logs the results """
+
+    logger = logging.getLogger(__name__)
+
+    def __init__(self, data):
+        self.data = data
+
+    def __call__(self, func, pipeline, *args, **kwargs):
+        __traceback_hide__ = True  # NOQA
+
+        command_stack = pipeline.command_stack[:]
+
+        start = time.time()
+
+        retval = func(pipeline, *args, **kwargs)
+
+        try:
+            end = time.time()
+            duration = end - start
+
+            redis = {
+                'command': 'pipeline',
+                'actions': repr(command_stack),
+                'kwargs': repr(kwargs),
+                'time': datetime.now().isoformat(),
+                'duration': duration,
+                'stacktrace': _get_stack(),
+                'value': repr(retval),
+            }
+
+            self.data.append(redis)
+        finally:
+            return retval
+
+
 class PerformanceRedisWrapper(object):
     """Wraps Redis methods and logs the results """
 
@@ -23,6 +59,7 @@ class PerformanceRedisWrapper(object):
 
     def __call__(self, func, *args, **kwargs):
         __traceback_hide__ = True  # NOQA
+
         redis = {}
         redis['command'] = args[1]
         redis['other_args'] = repr(args[2:])
@@ -52,6 +89,7 @@ class PerformanceCacheWrapper(object):
 
     def __call__(self, func, *args, **kwargs):
         __traceback_hide__ = True  # NOQA
+
         cache = {}
         cache['key'] = args[1]
         cache['other_args'] = repr(args[2:])
@@ -85,6 +123,7 @@ class PerformanceCursorWrapper(object):
 
     def __getattr__(self, attr):
         __traceback_hide__ = True  # NOQA
+
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
@@ -92,12 +131,16 @@ class PerformanceCursorWrapper(object):
 
     def __iter__(self):
         __traceback_hide__ = True  # NOQA
+
         return iter(self.cursor)
 
     def execute(self, operation, parameters=()):
-        """Wraps execute method to record the query, execution duration and
-        stackframe."""
+        """
+        Wraps execute method to record the query, execution duration and
+        stackframe.
+        """
         __traceback_hide__ = True  # NOQ
+
         # Time the exection of the query
 
         start = time.time()
@@ -121,6 +164,7 @@ class PerformanceCursorWrapper(object):
 
     def executemany(self, operation, parameters):
         __traceback_hide__ = True  # NOQA
+
         # The real cursor calls execute in executemany so nothing needs to be
         # recorded here.
         self.cursor.executemany(operation, parameters)
@@ -137,6 +181,7 @@ def patch_cursor(data):
 
 def _get_stack():
     __traceback_hide__ = True  # NOQA
+
     frames = []
 
     # set context = 1 to exclude this current frame
@@ -157,8 +202,11 @@ def _get_stack():
 
 
 def _get_frame_data(frame):
-    """Extracts Filename, Line Number, Function Name, Context from a frame"""
+    """
+    Extracts Filename, Line Number, Function Name, Context from a frame
+    """
     __traceback_hide__ = True  # NOQA
+
     ret = {}
 
     file_name = frame.f_code.co_filename
@@ -172,9 +220,13 @@ def _get_frame_data(frame):
 
 
 def _filter_frame_data(frame_data):
-    """This function determines if a frame should be removed from a stacktrace.
-    This function removes frames that are apart of the performance suite and django."""
+    """
+    This function determines if a frame should be removed from a stacktrace.
+
+    This function removes frames that are apart of the performance suite and django.
+    """
     __traceback_hide__ = True  # NOQA
+
     # If the frame is the current file
     if frame_data['name'] == '__main__':
         return False
@@ -188,8 +240,8 @@ def _filter_frame_data(frame_data):
         return False
 
     # Remove the test runner
-    if frame_data['name'] == 'disqus.tests.runners':
-        return False
+    # if frame_data['name'] == 'disqus.tests.runners':
+    #     return False
 
     # Remove unittest and unittest2
     if frame_data['name'].partition('.')[0] == 'unittest' or frame_data['name'].partition('.')[0] == 'unittest2':
