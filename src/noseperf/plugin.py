@@ -140,14 +140,10 @@ class PerformancePlugin(Plugin):
             return
 
         interfaces = {}
-        method = getattr(test.test, test.test._testMethodName)
-        test_id = self._get_name_from_test(test.test)
 
         data = {
-            'id': test_id,
+            'id': test.test.id(),
             'doc': test.test._testMethodDoc,
-            'label': getattr(method, 'test_label', test_id),
-            'group': getattr(method, 'test_group', type(method).__name__),
             'duration': self.end - self.start,
             'interfaces': interfaces,
         }
