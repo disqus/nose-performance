@@ -20,6 +20,15 @@ Results are recorded to ``test_results/performance.json`` by default::
 
 For more options, nosetests --help | grep performance
 
+Captured Data
+-------------
+
+Currently the data captured includes hooks for the following:
+
+- Redis
+- Django ORM
+- Django Cache
+
 About
 -----
 
