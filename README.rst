@@ -10,7 +10,9 @@ Usage
 
 Run your test suite with the ``--with-performance`` option::
 
-    $ nosetests --with-performance example/
+    $ python runtests.py --with-performance example/
+
+(We're using runtests.py because we inject django-nose to test our Django hooks)
 
 Results are recorded to ``test_results/performance.json`` by default::
 
