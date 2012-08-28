@@ -159,7 +159,7 @@ class PerformanceCursorWrapper(object):
             sql = {}
             sql['query'] = operation
             sql['query_params'] = parameters
-            sql['full_query'] = operation % parameters
+            sql['full_query'] = operation % tuple(parameters)
             sql['duration'] = duration
             sql['stacktrace'] = stacktrace
             sql['time'] = datetime.now().isoformat()

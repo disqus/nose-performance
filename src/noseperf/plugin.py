@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from datetime import datetime
 import json
-import logging
 import os
 import sys
 import time
@@ -103,7 +102,7 @@ class PerformancePlugin(Plugin):
 
         cache_backends = set()
         if django.VERSION < (1, 3):
-            for backend in ('locmem', 'filebased', 'memcache', 'dummy'):
+            for backend in ('locmem', 'filebased', 'memcached', 'dummy'):
                 path = 'django.core.cache.backends.%s.CacheClass' % backend
                 cache_backends.add(path)
 
@@ -115,7 +114,7 @@ class PerformancePlugin(Plugin):
 
         else:
             for backend, cls in (('locmem', 'LocMemCache'), ('filebased', 'FileBasedCache'),
-                                 ('memcache', 'BaseMemcachedCache'), ('dummy', 'DummyCache')):
+                                 ('memcached', 'BaseMemcachedCache'), ('dummy', 'DummyCache')):
                 for cmd in ('get', 'set', 'add', 'delete', 'get_many'):
                     path = 'django.core.cache.backends.%s.%s' % (backend, cls)
                     cache_backends.add(path)

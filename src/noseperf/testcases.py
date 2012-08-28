@@ -9,6 +9,8 @@ from __future__ import absolute_import
 
 from unittest2 import TestCase
 
+__all__ = ('PerformanceTest', 'DjangoPerformanceTest')
+
 
 class PerformanceTest(TestCase):
     """
@@ -18,3 +20,14 @@ class PerformanceTest(TestCase):
     plugin will then profile the tests and measure activity.
     """
     tags = ["performance"]
+
+try:
+    __import__('django')
+except ImportError:
+    class DjangoPerformanceTest(PerformanceTest):
+        pass  # NOOP
+else:
+    from django.test import TestCase as DjangoTestCase
+
+    class DjangoPerformanceTest(DjangoTestCase, PerformanceTest):
+        pass
