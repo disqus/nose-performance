@@ -100,13 +100,7 @@ class PerformancePlugin(Plugin):
         except ImportError:
             pass
         else:
-            self.add_context(PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', patch_cursor(self._sql_data)))
-
-            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.get', PerformanceCacheWrapper(self._cache_data, 'get')))
-            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.set', PerformanceCacheWrapper(self._cache_data, 'set')))
-            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.add', PerformanceCacheWrapper(self._cache_data, 'add')))
-            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.delete', PerformanceCacheWrapper(self._cache_data, 'delete')))
-            self.add_context(PatchContext('django.core.cache.backends.locmem.CacheClass.get_many', PerformanceCacheWrapper(self._cache_data, 'get_many')))
+            self.patch_django_interfaces()
 
         try:
             __import__('redis')
@@ -115,6 +109,38 @@ class PerformancePlugin(Plugin):
         else:
             self.add_context(PatchContext('redis.client.StrictRedis.execute_command', PerformanceRedisWrapper(self._redis_data)))
             self.add_context(PatchContext('redis.client.BasePipeline.execute', RedisPipelineHook(self._redis_data)))
+
+    def patch_django_interfaces(self):
+        import django
+        from django.conf import settings
+
+        self.add_context(PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', patch_cursor(self._sql_data)))
+
+        cache_backends = set()
+        if django.VERSION < (1, 3):
+            for backend in ('locmem', 'filebased', 'memcache', 'dummy'):
+                path = 'django.core.cache.backends.%s.CacheClass' % backend
+                cache_backends.add(path)
+
+            backend = settings.CACHE_BACKEND.split(':', 1)[0]
+            if '.' not in backend:
+                backend = 'django.core.cache.%s' % backend
+            path = '%s.CacheClass' % backend
+            cache_backends.add(path)
+
+        else:
+            for backend, cls in (('locmem', 'LocMemCache'), ('filebased', 'FileBasedCache'),
+                                 ('memcache', 'BaseMemcachedCache'), ('dummy', 'DummyCache')):
+                for cmd in ('get', 'set', 'add', 'delete', 'get_many'):
+                    path = 'django.core.cache.backends.%s.%s' % (backend, cls)
+                    cache_backends.add(path)
+
+            for cache_config in settings.CACHES.itervalues():
+                cache_backends.add(cache_config['BACKEND'])
+
+        for path in cache_backends:
+            for cmd in ('get', 'set', 'add', 'delete', 'get_many'):
+                self.add_context(PatchContext('%s.%s' % (path, cmd), PerformanceCacheWrapper(self._cache_data, cmd)))
 
     def add_context(self, ctx):
         ctx.__enter__()
