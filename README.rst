@@ -3,7 +3,7 @@ nose-performance
 
 A performance testing plugin for Nose.
 
-Integrates with `Zumanji <https://github.com/disqus/zumanji>` to report and archive results.
+Integrates with `Zumanji <https://github.com/disqus/zumanji>`_ to report and archive results.
 
 Usage
 -----
@@ -23,5 +23,5 @@ For more options, nosetests --help | grep performance
 About
 -----
 
-This plugin was originally created at DISQUS by `Zameer Manji <http://twitter.com/zmanji>` as an experiment in automating
+This plugin was originally created at DISQUS by `Zameer Manji <http://twitter.com/zmanji>`_ as an experiment in automating
 testing for performance regressions.
