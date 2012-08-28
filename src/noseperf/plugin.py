@@ -102,23 +102,13 @@ class PerformancePlugin(Plugin):
 
         cache_backends = set()
         if django.VERSION < (1, 3):
-            for backend in ('locmem', 'filebased', 'memcached', 'dummy'):
-                path = 'django.core.cache.backends.%s.CacheClass' % backend
-                cache_backends.add(path)
-
             backend = settings.CACHE_BACKEND.split(':', 1)[0]
             if '.' not in backend:
-                backend = 'django.core.cache.%s' % backend
+                backend = 'django.core.cache.backends.%s' % backend
             path = '%s.CacheClass' % backend
             cache_backends.add(path)
 
         else:
-            for backend, cls in (('locmem', 'LocMemCache'), ('filebased', 'FileBasedCache'),
-                                 ('memcached', 'BaseMemcachedCache'), ('dummy', 'DummyCache')):
-                for cmd in ('get', 'set', 'add', 'delete', 'get_many'):
-                    path = 'django.core.cache.backends.%s.%s' % (backend, cls)
-                    cache_backends.add(path)
-
             for cache_config in settings.CACHES.itervalues():
                 cache_backends.add(cache_config['BACKEND'])
 
