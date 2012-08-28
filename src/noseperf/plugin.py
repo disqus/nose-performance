@@ -37,21 +37,6 @@ class PerformancePlugin(Plugin):
     """
     score = -sys.maxint - 1  # Should be the absolute last thing ever to run since it transparently monitors the code.
     enabled = False
-    logger = logging.getLogger(__name__)
-
-    def _get_name_from_test(self, test):
-        test_method_name = test._testMethodName
-
-        # We need to determine the *actual* test path (as thats what nose gives us in wantMethod)
-        # for example, maybe a test was imported in foo.bar.tests, but originated as foo.bar.something.MyTest
-        # in this case, we'd need to identify that its *actually* foo.bar.something.MyTest to record the
-        # proper coverage
-        test_ = getattr(sys.modules[test.__module__], test.__class__.__name__)
-
-        test_name = '%s:%s.%s' % (test_.__module__, test_.__name__,
-                                                     test_method_name)
-
-        return test_name
 
     def options(self, parser, env):
         parser.add_option("--with-performance", dest="enable_performance",
