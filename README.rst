@@ -1,0 +1,27 @@
+nose-performance
+================
+
+A performance testing plugin for Nose.
+
+Integrates with `Zumanji <https://github.com/disqus/zumanji>` to report and archive results.
+
+Usage
+-----
+
+Run your test suite with the ``--with-performance`` option::
+
+    $ nosetests --with-performance example/
+
+Results are recorded to ``test_results/performance.json`` by default::
+
+    $ ls -lh test_results
+    total 2128
+    -rw-r--r--  1 dcramer  staff   1.0M Aug 27 18:10 performance.json
+
+For more options, nosetests --help | grep performance
+
+About
+-----
+
+This plugin was originally created at DISQUS by `Zameer Manji <http://twitter.com/zmanji>` as an experiment in automating
+testing for performance regressions.
