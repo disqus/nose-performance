@@ -26,11 +26,12 @@ class RedisPipelineHook(object):
 
         command_stack = pipeline.command_stack[:]
 
+        retval = None
         start = time.time()
-
-        retval = func(pipeline, *args, **kwargs)
-
         try:
+            retval = func(pipeline, *args, **kwargs)
+            return retval
+        finally:
             end = time.time()
             duration = end - start
 
@@ -45,8 +46,6 @@ class RedisPipelineHook(object):
             }
 
             self.data.append(redis)
-        finally:
-            return retval
 
 
 class PerformanceRedisWrapper(object):
@@ -66,18 +65,20 @@ class PerformanceRedisWrapper(object):
         redis['kwargs'] = repr(kwargs)
         redis['time'] = datetime.now().isoformat()
 
+        retval = None
         start = time.time()
-        ret = func(*args, **kwargs)
-        end = time.time()
-        duration = end - start
+        try:
+            retval = func(*args, **kwargs)
+            return retval
+        finally:
+            end = time.time()
+            duration = end - start
 
-        redis['duration'] = duration
-        redis['stacktrace'] = _get_stack()
-        redis['value'] = repr(ret)
+            redis['duration'] = duration
+            redis['stacktrace'] = _get_stack()
+            redis['value'] = repr(retval)
 
-        self.data.append(redis)
-
-        return ret
+            self.data.append(redis)
 
 
 class PerformanceCacheWrapper(object):
@@ -96,21 +97,21 @@ class PerformanceCacheWrapper(object):
         cache['action'] = self.action
         cache['time'] = datetime.now().isoformat()
 
+        retval = None
         start = time.time()
+        try:
+            retval = func(*args, **kwargs)
+            return retval
+        finally:
+            end = time.time()
 
-        ret = func(*args, **kwargs)
+            duration = end - start
 
-        end = time.time()
+            cache['duration'] = duration
+            cache['stacktrace'] = _get_stack()
+            cache['value'] = repr(retval)
 
-        duration = end - start
-
-        cache['duration'] = duration
-        cache['stacktrace'] = _get_stack()
-        cache['value'] = repr(ret)
-
-        self.data.append(cache)
-
-        return ret
+            self.data.append(cache)
 
 
 class PerformanceCursorWrapper(object):
@@ -144,23 +145,25 @@ class PerformanceCursorWrapper(object):
         # Time the exection of the query
 
         start = time.time()
-        self.cursor.execute(operation, parameters)
-        end = time.time()
+        try:
+            return self.cursor.execute(operation, parameters)
+        finally:
+            end = time.time()
 
-        duration = end - start
+            duration = end - start
 
-        # Capture the stackframe of execution
-        stacktrace = _get_stack()
+            # Capture the stackframe of execution
+            stacktrace = _get_stack()
 
-        # Save the data
-        sql = {}
-        sql['query'] = operation
-        sql['query_params'] = parameters
-        sql['full_query'] = operation % parameters
-        sql['duration'] = duration
-        sql['stacktrace'] = stacktrace
-        sql['time'] = datetime.now().isoformat()
-        self.data.append(sql)
+            # Save the data
+            sql = {}
+            sql['query'] = operation
+            sql['query_params'] = parameters
+            sql['full_query'] = operation % parameters
+            sql['duration'] = duration
+            sql['stacktrace'] = stacktrace
+            sql['time'] = datetime.now().isoformat()
+            self.data.append(sql)
 
     def executemany(self, operation, parameters):
         __traceback_hide__ = True  # NOQA

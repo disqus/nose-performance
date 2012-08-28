@@ -39,27 +39,43 @@ class PerformancePlugin(Plugin):
     enabled = False
     logger = logging.getLogger(__name__)
 
+    def _get_name_from_test(self, test):
+        test_method_name = test._testMethodName
+
+        # We need to determine the *actual* test path (as thats what nose gives us in wantMethod)
+        # for example, maybe a test was imported in foo.bar.tests, but originated as foo.bar.something.MyTest
+        # in this case, we'd need to identify that its *actually* foo.bar.something.MyTest to record the
+        # proper coverage
+        test_ = getattr(sys.modules[test.__module__], test.__class__.__name__)
+
+        test_name = '%s:%s.%s' % (test_.__module__, test_.__name__,
+                                                     test_method_name)
+
+        return test_name
+
     def options(self, parser, env):
         parser.add_option("--with-performance", dest="enable_performance",
-                default=False, action="store_true",
-                help="Enable the performance plugin.")
+            default=False, action="store_true",
+            help="Enable the performance plugin.")
 
         parser.add_option("--performance-json-file", dest="performance_file",
-                         default="performance.json", metavar="FILE",
-                         help="Save Results in file. Defaults to performance.json")
+            default="performance.json", metavar="FILE",
+            help="Save Results in file. Defaults to performance.json")
 
-        parser.add_option("--performance-html", dest="performance_html",
-                        default=False, action="store_true",
-                        help="Create an HTML Report")
+        parser.add_option("--performance-revision", dest="performance_revision",
+            default=None, help="Revision name to identify this build")
+
+        parser.add_option("--performance-schema", dest="performance_schema",
+            default=None, help="Schema to identify this build with")
 
     def configure(self, options, conf):
-        if options.enable_performance:
-            self.enabled = True
-        else:
+        if not options.enable_performance:
             return
 
+        self.enabled = True
         self.json_file = options.performance_file
-        self.enable_html = options.performance_html
+        self.revision = options.performance_revision
+        self.schema = options.performance_schema
 
     def wantClass(self, cls):
         """
@@ -72,9 +88,7 @@ class PerformancePlugin(Plugin):
         self.tests = []
         self.context_stack = []
 
-    def beforeTest(self, test):
-        # Patch everything needed to get data.
-
+    def patch_interfaces(self):
         self._sql_data = []
         self._cache_data = []
         self._redis_data = []
@@ -102,9 +116,6 @@ class PerformancePlugin(Plugin):
             self.add_context(PatchContext('redis.client.StrictRedis.execute_command', PerformanceRedisWrapper(self._redis_data)))
             self.add_context(PatchContext('redis.client.BasePipeline.execute', RedisPipelineHook(self._redis_data)))
 
-    def startTest(self, test):
-        self.start = time.time()
-
     def add_context(self, ctx):
         ctx.__enter__()
         self.context_stack.append(ctx)
@@ -113,21 +124,30 @@ class PerformancePlugin(Plugin):
         while self.context_stack:
             self.context_stack.pop().__exit__(None, None, None)
 
+    def beforeTest(self, test):
+        self.patch_interfaces()
+
+    def startTest(self, test):
+        self.start = time.time()
+
     def stopTest(self, test):
         self.end = time.time()
 
     def afterTest(self, test):
-        # Save a dict of data for this test.
         self.clear_context()
 
         if not hasattr(self, 'end'):
             return
 
         interfaces = {}
+        method = getattr(test.test, test.test._testMethodName)
+        test_id = self._get_name_from_test(test.test)
 
         data = {
-            'id': test.test.id(),
+            'id': test_id,
             'doc': test.test._testMethodDoc,
+            'label': getattr(method, 'test_label', test_id),
+            'group': getattr(method, 'test_group', type(method).__name__),
             'duration': self.end - self.start,
             'interfaces': interfaces,
         }
@@ -147,7 +167,10 @@ class PerformancePlugin(Plugin):
 
         # Dump the raw data to json
         with open(base_dir + self.json_file, "w+") as f:
-            data = {}
-            data["time"] = self.start_time.isoformat()
-            data["tests"] = self.tests
+            data = {
+                'time': self.start_time.isoformat(),
+                'tests': self.tests,
+                'revision': self.revision,
+                'schema': self.schema,
+            }
             json.dump(data, f, indent=4)
