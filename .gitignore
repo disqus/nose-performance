@@ -3,3 +3,4 @@
 *.pyc
 /dist
 /test_results
+performance.json

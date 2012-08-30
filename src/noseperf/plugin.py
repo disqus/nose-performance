@@ -157,12 +157,13 @@ class PerformancePlugin(Plugin):
         self.tests.append(data)
 
     def report(self, stream):
-        base_dir = os.getcwd() + '/test_results/'
+        json_file = os.path.realpath(self.json_file)
+        base_dir = os.path.dirname(json_file)
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
 
         # Dump the raw data to json
-        with open(base_dir + self.json_file, "w+") as f:
+        with open(json_file, "w+") as f:
             data = {
                 'time': self.start_time.isoformat(),
                 'tests': self.tests,

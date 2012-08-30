@@ -49,36 +49,3 @@ class PatchContext(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         setattr(self.target, self.attr, self.func)
-
-
-def lsprof_to_dict(entry):
-    "Takes a lsprof profile entry and turns it into a dict of useful values."
-    d = {}
-    d['callcount'] = entry.callcount
-    d['reccallcount'] = entry.reccallcount
-    d['totaltime'] = entry.totaltime
-    d['inlinetime'] = entry.inlinetime
-    if type(entry.code) == str:
-        d['code'] = entry.code
-        try:
-            kind = entry.code.split(" ")[0]
-            if kind is "method":
-                d['name'] = entry.code.split(" ")[1][1:-1]
-            elif kind is "built-in":
-                d['name'] = entry.code.split(" ")[2][1:-1]
-            else:
-                raise IndexError
-        except IndexError:
-            d['name'] = entry.code
-        d['file_name'] = None
-    else:
-        d['code'] = str(entry.code)
-        d['file_name'] = entry.code.co_filename
-        d['name'] = entry.code.co_name
-
-    if hasattr(entry, 'calls'):
-        calls = entry.calls or []
-        d['calls'] = map(lsprof_to_dict, calls)
-
-    return d
-

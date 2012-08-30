@@ -12,6 +12,8 @@ import sys
 import time
 import logging
 
+from noseperf.stacks import get_stack_info, iter_stack_frames
+
 
 class RedisPipelineHook(object):
     """Wraps Redis methods and logs the results """
@@ -185,93 +187,4 @@ def patch_cursor(data):
 def _get_stack():
     __traceback_hide__ = True  # NOQA
 
-    frames = []
-
-    # set context = 1 to exclude this current frame
-    frame = sys._getframe()
-
-    while frame:
-        frame_data = _get_frame_data(frame)
-        frames.append(frame_data)
-        frame = frame.f_back
-
-    frames = filter(_filter_frame_data, frames)
-
-    # Need to delete locals because we cannot get a good representation of them
-    for frame in frames:
-        del frame['locals']
-
-    return frames
-
-
-def _get_frame_data(frame):
-    """
-    Extracts Filename, Line Number, Function Name, Context from a frame
-    """
-    __traceback_hide__ = True  # NOQA
-
-    ret = {}
-
-    file_name = frame.f_code.co_filename
-    ret['file_name'] = file_name
-    ret['name'] = frame.f_globals.get('__name__')
-    ret['locals'] = frame.f_locals
-    ret['line_number'] = frame.f_lineno
-    ret['function_name'] = frame.f_code.co_name
-    ret['code'] = _get_lines_from_file(frame.f_code.co_filename, frame.f_lineno)
-    return ret
-
-
-def _filter_frame_data(frame_data):
-    """
-    This function determines if a frame should be removed from a stacktrace.
-
-    This function removes frames that are apart of the performance suite and django.
-    """
-    __traceback_hide__ = True  # NOQA
-
-    # If the frame is the current file
-    if frame_data['name'] == '__main__':
-        return False
-
-    # If the frame contains a '__traceback_hide__' variable
-    if frame_data['locals'].get('__traceback_hide__', False):
-        return False
-
-    # If the frame is in nose
-    if frame_data['name'].partition('.')[0] == 'nose':
-        return False
-
-    # Remove the test runner
-    # if frame_data['name'] == 'disqus.tests.runners':
-    #     return False
-
-    # Remove unittest and unittest2
-    if frame_data['name'].partition('.')[0] == 'unittest' or frame_data['name'].partition('.')[0] == 'unittest2':
-        return False
-
-    return True
-
-
-def _get_lines_from_file(filename, linenum, context=3):
-    """
-    Given the filename, and line number will return a dict with the content of
-    the line and the context above and below it.
-    """
-    with open(filename) as f:
-        try:
-            source = f.readlines()
-        except IOError:
-            return []
-
-    try:
-        ret = []
-        for i in xrange(linenum - context, linenum + context + 1):
-            line = []
-            line.append(i)
-            chars = source[i - 1]
-            line.append(chars)
-            ret.append(line)
-        return ret
-    except IndexError:
-        return []
+    return get_stack_info(iter_stack_frames())
