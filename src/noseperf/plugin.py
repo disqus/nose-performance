@@ -52,6 +52,9 @@ class PerformancePlugin(Plugin):
         parser.add_option("--performance-schema", dest="performance_schema",
             default=None, help="Schema to identify this build with")
 
+        parser.add_option("--disable-performance-selector", dest="disable_performance_selector",
+            action='store_true', help="If disabled, will allow any test to run", default=False)
+
     def configure(self, options, conf):
         if not options.enable_performance:
             return
@@ -60,11 +63,14 @@ class PerformancePlugin(Plugin):
         self.json_file = options.performance_file
         self.revision = options.performance_revision
         self.schema = options.performance_schema
+        self.use_selector = not options.disable_performance_selector
 
     def wantClass(self, cls):
         """
         Only profile performance tests.
         """
+        if not self.use_selector:
+            return None
         return issubclass(cls, PerformanceTest)
 
     def begin(self):
