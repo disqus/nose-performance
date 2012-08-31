@@ -131,15 +131,48 @@ class PerformancePlugin(Plugin):
             self.context_stack.pop().__exit__(None, None, None)
 
     def beforeTest(self, test):
-        self.patch_interfaces()
+        """
+        Monkey patch the test to ensure setUp and tearDown happen outside
+        of the scope of our monitoring hooks.
+        """
+        plugin = self
 
-    def startTest(self, test):
-        self.start = time.time()
+        cls = type(test.test)
 
-    def stopTest(self, test):
-        self.end = time.time()
+        cls.__orig_setup = cls.setUp
+        cls.__orig_teardown = cls.tearDown
+
+        def setUp(self):
+            self.__orig_setup()
+            plugin.beginTracing(self)
+
+        def tearDown(self):
+            plugin.endTracing(self)
+            self.__orig_teardown()
+
+        setUp.__is_patched = True
+        tearDown.__is_patched = True
+
+        cls.setUp = setUp
+        cls.tearDown = tearDown
+
+        return test
 
     def afterTest(self, test):
+        """
+        Remove our monkey patches.
+        """
+        cls = type(test.test)
+
+        cls.setUp = cls.__orig_setup
+        cls.tearDown = cls.__orig_teardown
+
+    def beginTracing(self, test):
+        self.patch_interfaces()
+        self.start = time.time()
+
+    def endTracing(self, test):
+        self.end = time.time()
         self.clear_context()
 
         if not hasattr(self, 'end'):
@@ -148,8 +181,8 @@ class PerformancePlugin(Plugin):
         interfaces = {}
 
         data = {
-            'id': test.test.id(),
-            'doc': test.test._testMethodDoc,
+            'id': test.id(),
+            'doc': test._testMethodDoc,
             'duration': self.end - self.start,
             'interfaces': interfaces,
         }
