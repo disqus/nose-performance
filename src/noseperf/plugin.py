@@ -17,8 +17,7 @@ from nose.plugins.base import Plugin
 
 from noseperf.testcases import PerformanceTest
 from noseperf.util import PatchContext
-from noseperf.wrappers import patch_cursor, PerformanceCacheWrapper, PerformanceRedisWrapper, \
-  RedisPipelineHook
+from noseperf.wrappers.base import FunctionWrapper
 
 
 class PerformancePlugin(Plugin):
@@ -79,9 +78,7 @@ class PerformancePlugin(Plugin):
         self.context_stack = []
 
     def patch_interfaces(self):
-        self._sql_data = []
-        self._cache_data = []
-        self._redis_data = []
+        self._calls = []
 
         try:
             from django.conf import settings
@@ -97,14 +94,20 @@ class PerformancePlugin(Plugin):
         except ImportError:
             pass
         else:
-            self.add_context(PatchContext('redis.client.StrictRedis.execute_command', PerformanceRedisWrapper(self._redis_data)))
-            self.add_context(PatchContext('redis.client.BasePipeline.execute', RedisPipelineHook(self._redis_data)))
+            self.patch_redis_interfaces()
+
+    def patch_redis_interfaces(self):
+        from noseperf.wrappers.redis import RedisWrapper, RedisPipelineWrapper
+
+        self.add_context(PatchContext('redis.client.StrictRedis.execute_command', RedisWrapper(self._calls)))
+        self.add_context(PatchContext('redis.client.BasePipeline.execute', RedisPipelineWrapper(self._calls)))
 
     def patch_django_interfaces(self):
         import django
         from django.conf import settings
+        from noseperf.wrappers.django import patch_cursor
 
-        self.add_context(PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', patch_cursor(self._sql_data)))
+        self.add_context(PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', patch_cursor(self._calls)))
 
         cache_backends = set()
         if django.VERSION < (1, 3):
@@ -120,7 +123,7 @@ class PerformancePlugin(Plugin):
 
         for path in cache_backends:
             for cmd in ('get', 'set', 'add', 'delete', 'get_many'):
-                self.add_context(PatchContext('%s.%s' % (path, cmd), PerformanceCacheWrapper(self._cache_data, cmd)))
+                self.add_context(PatchContext('%s.%s' % (path, cmd), FunctionWrapper(self._calls)))
 
     def add_context(self, ctx):
         ctx.__enter__()
@@ -185,13 +188,8 @@ class PerformancePlugin(Plugin):
             'doc': test._testMethodDoc,
             'duration': self.end - self.start,
             'interfaces': interfaces,
+            'calls': self._calls,
         }
-
-        interfaces.update({
-            'sql': self._sql_data,
-            'cache': self._cache_data,
-            'redis': self._redis_data,
-        })
 
         self.tests.append(data)
 
