@@ -32,7 +32,7 @@ class DjangoTemplateWrapper(Wrapper):
 
 
 class DjangoCursorWrapper(Wrapper):
-    _perftype = 'orm'
+    _perftype = 'sql'
 
     def __init__(self, cursor, connection, *args, **kwargs):
         self.cursor = cursor
