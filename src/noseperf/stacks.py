@@ -63,6 +63,7 @@ def get_lines_from_file(filename, lineno, context_lines, loader=None, module_nam
             source = None
         if source is not None:
             source = source.splitlines()
+
     if source is None:
         try:
             f = open(filename)
@@ -72,6 +73,7 @@ def get_lines_from_file(filename, lineno, context_lines, loader=None, module_nam
                 f.close()
         except (OSError, IOError):
             pass
+
     if source is None:
         return []
 
@@ -86,10 +88,10 @@ def get_lines_from_file(filename, lineno, context_lines, loader=None, module_nam
     source = [unicode(sline, encoding, 'replace') for sline in source]
 
     lower_bound = max(0, lineno - context_lines)
-    upper_bound = lineno + context_lines + 1
+    upper_bound = min(lineno + context_lines + 1, len(source))
 
     try:
-        return [(lineno, source[lineno].strip('\n')) for lineno in xrange(lower_bound, upper_bound)]
+        return [(lineno + 1, source[lineno].strip('\n')) for lineno in xrange(lower_bound, upper_bound)]
     except IndexError:
         # the file may have changed since it was loaded into memory
         return []
