@@ -125,7 +125,7 @@ class PerformancePlugin(Plugin):
 
         for path in cache_backends:
             for cmd in ('get', 'set', 'add', 'delete', 'get_many'):
-                self.add_context(PatchContext('%s.%s' % (path, cmd), FunctionWrapper(self._calls)))
+                self.add_context(PatchContext('%s.%s' % (path, cmd), FunctionWrapper('cache', self._calls)))
 
     def add_context(self, ctx):
         ctx.__enter__()

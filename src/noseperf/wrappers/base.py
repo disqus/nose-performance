@@ -29,6 +29,10 @@ class Wrapper(object):
 class FunctionWrapper(Wrapper):
     _perfkey = None
 
+    def __init__(self, perfkey=None, *args, **kwargs):
+        super(FunctionWrapper, self).__init__(*args, **kwargs)
+        self._perfkey = perfkey
+
     def __call__(self, func, *args, **kwargs):
         __traceback_hide__ = True  # NOQA
 
@@ -39,7 +43,7 @@ class FunctionWrapper(Wrapper):
             end = time.time()
 
             data = {
-                'type': func.__name__,
+                'type': self._perfkey or func.__name__,
                 'name': func.__name__,
                 'args': repr(args),
                 'kwargs': repr(kwargs),
