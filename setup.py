@@ -20,6 +20,7 @@ except ImportError:
 tests_require = [
     'psycopg2',
     'redis',
+    'Django>=1.2',
 ]
 
 install_requires = [
