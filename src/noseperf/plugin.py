@@ -35,6 +35,7 @@ class PerformancePlugin(Plugin):
     """
     score = -sys.maxint - 1  # Should be the absolute last thing ever to run since it transparently monitors the code.
     enabled = False
+    version = 2
 
     def options(self, parser, env):
         parser.add_option("--with-performance", dest="enable_performance",
@@ -204,6 +205,7 @@ class PerformancePlugin(Plugin):
         # Dump the raw data to json
         with open(json_file, "w+") as f:
             data = {
+                'version': self.version,
                 'time': self.start_time.isoformat(),
                 'tests': self.tests,
                 'revision': self.revision,
