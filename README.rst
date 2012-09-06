@@ -56,3 +56,5 @@ About
 
 This plugin was originally created at DISQUS by `Zameer Manji <http://twitter.com/zmanji>`_ as an experiment in automating
 testing for performance regressions.
+
+Some of the hooks have been inspired by work done in various applications, such as Sentry and Django Debug Toolbar.

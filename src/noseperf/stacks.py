@@ -18,6 +18,24 @@ import sys
 _coding_re = re.compile(r'coding[:=]\s*([-\w.]+)')
 
 
+def frames_after_module(frames, module):
+    started = False
+    last_mod = ''
+    results = []
+    for frame, lineno in list(frames)[::-1]:
+        if not started:
+            f_globals = getattr(frame, 'f_globals', {})
+            module_name = _getitem_from_frame(f_globals, '__name__')
+            if (last_mod and last_mod.startswith('unittest2')) \
+                and not module_name.startswith('unittest2'):
+                started = True
+            else:
+                last_mod = module_name
+                continue
+        results.append((frame, lineno))
+    return results
+
+
 def get_lines_from_file(filename, lineno, context_lines, loader=None, module_name=None):
     """
     Returns context_lines before and after lineno from file.

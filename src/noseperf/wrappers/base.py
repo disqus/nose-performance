@@ -7,8 +7,9 @@ noseperf.wrappers.base
 """
 from __future__ import absolute_import
 
+import inspect
 import time
-from noseperf.stacks import get_stack_info, iter_stack_frames
+from noseperf.stacks import get_stack_info, iter_stack_frames, frames_after_module
 
 
 class Wrapper(object):
@@ -18,12 +19,16 @@ class Wrapper(object):
         self.data = data
 
     def _record(self, data):
-        data['stacktrace'] = get_stack_info(iter_stack_frames())
-
+        frames = frames_after_module(iter_stack_frames(inspect.stack()[2:]), 'unittest2')
+        data['stacktrace'] = get_stack_info(frames)
+        if 'type' not in data:
+            data['type'] = self._perftype
         self.data.append(data)
 
 
 class FunctionWrapper(Wrapper):
+    _perfkey = None
+
     def __call__(self, func, *args, **kwargs):
         __traceback_hide__ = True  # NOQA
 
@@ -34,7 +39,8 @@ class FunctionWrapper(Wrapper):
             end = time.time()
 
             data = {
-                'command': func.__name__,
+                'type': func.__name__,
+                'name': func.__name__,
                 'args': repr(args),
                 'kwargs': repr(kwargs),
                 'start': start,

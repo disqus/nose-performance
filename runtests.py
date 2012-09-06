@@ -20,6 +20,7 @@ if not settings.configured:
         INSTALLED_APPS=[
             'django.contrib.auth',
             'django.contrib.contenttypes',
+            'example',
         ],
         ROOT_URLCONF='',
         DEBUG=False,
@@ -30,7 +31,7 @@ from django_nose import NoseTestSuiteRunner
 
 def runtests(*test_args, **kwargs):
     if not test_args:
-        test_args = ['tests']
+        test_args = ['example']
 
     kwargs.setdefault('interactive', False)
 

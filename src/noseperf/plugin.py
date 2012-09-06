@@ -105,9 +105,11 @@ class PerformancePlugin(Plugin):
     def patch_django_interfaces(self):
         import django
         from django.conf import settings
-        from noseperf.wrappers.django import patch_cursor
+        from noseperf.wrappers.django import DjangoTemplateWrapper, patch_cursor
 
         self.add_context(PatchContext('django.db.backends.BaseDatabaseWrapper.cursor', patch_cursor(self._calls)))
+
+        self.add_context(PatchContext('django.template.Template._render', DjangoTemplateWrapper(self._calls)))
 
         cache_backends = set()
         if django.VERSION < (1, 3):

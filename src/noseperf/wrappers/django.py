@@ -11,8 +11,28 @@ import time
 from noseperf.wrappers.base import Wrapper
 
 
+class DjangoTemplateWrapper(Wrapper):
+    _perftype = 'template'
+
+    def __call__(self, func, template, *args, **kwargs):
+        __traceback_hide__ = True  # NOQA
+
+        start = time.time()
+
+        try:
+            return func(template, *args, **kwargs)
+        finally:
+            end = time.time()
+            self._record({
+                'name': 'render',
+                'args': [template.name],
+                'start': start,
+                'end': end,
+            })
+
+
 class DjangoCursorWrapper(Wrapper):
-    """Wraps a cursor to profile and log database queries"""
+    _perftype = 'orm'
 
     def __init__(self, cursor, connection, *args, **kwargs):
         self.cursor = cursor
@@ -49,7 +69,7 @@ class DjangoCursorWrapper(Wrapper):
 
             # Save the data
             data = {
-                'command': operation,
+                'name': operation,
                 'args': parameters,
                 'start': start,
                 'end': end,

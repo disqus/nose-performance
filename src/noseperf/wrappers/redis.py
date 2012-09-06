@@ -12,6 +12,8 @@ from noseperf.wrappers.base import Wrapper
 
 
 class RedisPipelineWrapper(Wrapper):
+    _perftype = 'redis'
+
     def __call__(self, func, pipeline, *args, **kwargs):
         __traceback_hide__ = True  # NOQA
 
@@ -24,7 +26,7 @@ class RedisPipelineWrapper(Wrapper):
             end = time.time()
 
             data = {
-                'command': 'pipeline',
+                'name': 'pipeline',
                 'args': repr(command_stack),
                 'kwargs': repr({}),
                 'start': start,
@@ -35,6 +37,8 @@ class RedisPipelineWrapper(Wrapper):
 
 
 class RedisWrapper(Wrapper):
+    _perftype = 'redis'
+
     def __call__(self, func, *args, **kwargs):
         __traceback_hide__ = True  # NOQA
 
@@ -45,7 +49,7 @@ class RedisWrapper(Wrapper):
             end = time.time()
 
             data = {
-                'command': args[1],
+                'name': args[1],
                 'args': repr(args[2:]),
                 'kwargs': repr(kwargs),
                 'start': start,
