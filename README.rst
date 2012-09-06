@@ -50,6 +50,7 @@ Currently the data captured includes hooks for the following:
 - Redis
 - Django ORM
 - Django Cache
+- Django Templates
 
 About
 -----
