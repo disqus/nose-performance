@@ -31,7 +31,7 @@ install_requires = [
 
 setup(
     name='nose-performance',
-    version='0.3.0',
+    version='0.4.0',
     author='DISQUS',
     author_email='opensource@disqus.com',
     url='https://github.com/disqus/nose-performance',
