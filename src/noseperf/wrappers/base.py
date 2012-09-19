@@ -42,10 +42,15 @@ class FunctionWrapper(Wrapper):
         finally:
             end = time.time()
 
+            if getattr(func, 'im_class', None):
+                arg_str = repr(args[1:])
+            else:
+                arg_str = repr(args)
+
             data = {
                 'type': self._perfkey or func.__name__,
                 'name': func.__name__,
-                'args': repr(args),
+                'args': arg_str,
                 'kwargs': repr(kwargs),
                 'start': start,
                 'end': end,
