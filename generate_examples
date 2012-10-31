@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for revision in `git rev-list HEAD --max-count=20`
+do
+    git checkout $revision
+    python runtests.py --with-performance example/  --performance-revision=$revision --performance-json-file="test_results/$revision.json"
+done
+git checkout master
